@@ -4,7 +4,6 @@ import matplotlib.patheffects as path_effects
 
 from scipy.integrate import odeint
 from scipy.optimize import curve_fit
-from matplotlib.gridspec import GridSpec
 
 ###############################################################################
 #                    General plot functions
@@ -13,12 +12,12 @@ from matplotlib.gridspec import GridSpec
 plt.style.use('seaborn')
 
 # Elimates the left and top lines and ticks in a matplotlib plot
-def PlotStyle(Axes, Title):
-    Axes.spines['top'].set_visible(False)
-    Axes.spines['right'].set_visible(False)
-    Axes.spines['bottom'].set_visible(True)
-    Axes.spines['left'].set_visible(True)
-    Axes.set_title(Title)
+def PlotStyle(axes, title):
+    axes.spines['top'].set_visible(False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['bottom'].set_visible(True)
+    axes.spines['left'].set_visible(True)
+    axes.set_title(title)
 
 ###############################################################################
 #                                 ODE solver
@@ -77,7 +76,6 @@ white_signal = make_noisy_data(solution, white_noise)
 Kp = curve_fit(solve_ode, t_vals, white_signal)[0][0]
 
 # Parameter estimation
-print(Kp)
 fit_solution = solve_ode(t_vals, Kp)
 
 plt.figure(2)

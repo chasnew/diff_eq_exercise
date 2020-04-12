@@ -17,13 +17,15 @@ from matplotlib.gridspec import GridSpec
 #                    General plot functions
 ###############################################################################
 
+plt.style.use('seaborn')
+
 # Elimates the left and top lines and ticks in a matplotlib plot
-def PlotStyle(Axes, Title):
-    Axes.spines['top'].set_visible(False)
-    Axes.spines['right'].set_visible(False)
-    Axes.spines['bottom'].set_visible(True)
-    Axes.spines['left'].set_visible(True)
-    Axes.set_title(Title)
+def PlotStyle(axes, title):
+    axes.spines['top'].set_visible(False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['bottom'].set_visible(True)
+    axes.spines['left'].set_visible(True)
+    axes.set_title(title)
 
 ###############################################################################
 #                          ODE fitting functions
