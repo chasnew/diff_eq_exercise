@@ -13,32 +13,9 @@ from scipy.optimize import curve_fit
 
 import scipy.stats as stats
 
-
-###############################################################################
-#                    General plot functions
-###############################################################################
+import util
 
 plt.style.use('seaborn')
-
-# Elimates the left and top lines and ticks in a matplotlib plot
-def PlotStyle(axes, title):
-    axes.spines['top'].set_visible(False)
-    axes.spines['right'].set_visible(False)
-    axes.spines['bottom'].set_visible(True)
-    axes.spines['left'].set_visible(True)
-    axes.xaxis.set_tick_params(labelsize=14)
-    axes.yaxis.set_tick_params(labelsize=14)
-    axes.set_title(title)
-
-
-###############################################################################
-#                    General Model Construction
-###############################################################################
-
-# Performs the dot product to make the model/construct system of differential equations
-def make_model(coef_matrix, init_conditions):
-    return np.dot(coef_matrix, init_conditions)
-
 
 ###############################################################################
 #                              ODE system solving
@@ -51,12 +28,12 @@ alpha = 0.4
 beta = 1
 
 
-# Matrix of coeficients for model A
-# Model A is refered in this script as model 01
+# Matrix of coefficients for model A
+# Model of damped motion of an object (./img/damped_motion_equation_system.png)
 def make_matrix_model(alpha, beta):
     matrix = np.zeros((2, 2))
 
-    matrix[0, 0] = alpha
+    matrix[0, 0] = -alpha
     matrix[0, 1] = -beta
     matrix[1, 0] = 1
 
@@ -69,8 +46,7 @@ init_conds = np.array([1, 1])
 
 
 def SODE(initial_conditions, t):
-    return make_model(matrix01, initial_conditions)
-
+    return util.make_model(matrix01, initial_conditions)
 
 solution = odeint(SODE, init_conds, time_steps)
 
@@ -95,20 +71,15 @@ plt.ylabel('Displacement', fontsize=16, fontweight='bold')
 plt.legend(loc=0, fontsize=14)
 
 ax = plt.gca()
-PlotStyle(ax, '')
+util.plot_style(ax, '')
 
 
 ###############################################################################
 #                        Data Generation
 ###############################################################################
 
-# Element wise sum of two iterables of the same size, name makes reference to the output rather than the process
-def MakeNoisyData(Data, Noise):
-    return [val + cal for val, cal in zip(Data, Noise)]
-
-
-WhiteNoise = [np.random.uniform(low=-1, high=1) * 3 for val in Solution[:, 1]]
-WhiteSignal = MakeNoisyData(Solution[:, 1], WhiteNoise)
+white_noise = [np.random.uniform(low=-0.1, high=0.1) * 3 for val in solution[:, 1]]
+white_signal = util.make_noisy_data(solution[:, 1], white_noise)
 
 
 ###############################################################################
@@ -116,35 +87,37 @@ WhiteSignal = MakeNoisyData(Solution[:, 1], WhiteNoise)
 ###############################################################################
 
 # Function for parameter estimation
-def solve_model(t, Alpha, Beta, InitialConditions):
-    cAlpha = Alpha
-    cBeta = Beta
-    cInit = InitialConditions
+def solve_model01(t, alpha, beta, init_conditions):
+    c_alpha = alpha
+    c_beta = beta
+    c_init = init_conditions
 
-    cMatrix = MakeModelMatrix01(cAlpha, cBeta)
+    c_matrix = make_matrix_model(c_alpha, c_beta)
 
-    def LocalModel(cInit, t):
-        return MakeModel(cMatrix, cInit)
+    def local_ode_model(c_init, t):
+        return util.make_model(c_matrix, c_init)
 
-    Solution = odeint(LocalModel, cInit, t)
+    solution = odeint(local_ode_model, c_init, t)
 
-    return Solution[:, 1]
-
-
-def ModelSolution01(t, Alpha, Beta):
-    return ModelSolver01(t, Alpha, Beta, Int)
+    return solution[:, 1] # return only one dimension of the ode solution
 
 
-Model01Params = curve_fit(solve_model, SolverTime, WhiteSignal)
+def compute_solution(t, alpha, beta):
+    return solve_model01(t, alpha, beta, init_conds) # call a function to solve ODE
+
+
+est_params = curve_fit(compute_solution, time_steps, white_signal)
 
 ###############################################################################
 #                    Fit solution
 ###############################################################################
 
-fAlpha = Model01Params[0][0]
-fBeta = Model01Params[0][1]
+f_alpha = est_params[0][0]
+f_beta = est_params[0][1]
+print(f'true alpha = {alpha}, true beta = {beta}')
+print(f'estimated alpha = {f_alpha}, estimated beta = {f_beta}')
 
-FitSolutionA = ModelSolution01(SolverTime, fAlpha, fBeta)
+fit_solution = compute_solution(time_steps, f_alpha, f_beta)
 
 ###############################################################################
 #                    Visualization
@@ -152,11 +125,11 @@ FitSolutionA = ModelSolution01(SolverTime, fAlpha, fBeta)
 
 plt.figure(2, figsize=(9, 6))
 
-(markers, stemlines, baseline) = plt.stem(SolverTime, WhiteSignal, bottom=-42, label='Data', basefmt=" ")
+(markers, stemlines, baseline) = plt.stem(time_steps, white_signal, bottom=-1.5, label='Data', basefmt=" ")
 plt.setp(stemlines, linestyle="-", color="red", linewidth=0.5, alpha=0.5)
 plt.setp(markers, color="red", alpha=0.75)
 
-plt.plot(SolverTime, FitSolutionA, 'b-', label=SolutionLabel,
+plt.plot(time_steps, fit_solution, 'b-', label=solution_label,
          path_effects=[path_effects.SimpleLineShadow(alpha=0.2, rho=0.2),
                        path_effects.Normal()])
 
@@ -164,17 +137,17 @@ plt.xlabel('Time', fontsize=16, fontweight='bold')
 plt.ylabel('Displacement', fontsize=16, fontweight='bold')
 plt.legend(loc=0, fontsize=14)
 
-plt.ylim(-42, 75)
+plt.ylim(-1.5, 1.5)
 
 ax = plt.gca()
-PlotStyle(ax, '')
+util.plot_style(ax, '')
 
 ###############################################################################
 #                    Residuals Statistical test
 ###############################################################################
 
-ObRes = [signal - model for signal, model in zip(WhiteSignal, FitSolutionA)]
+ObRes = [signal - model for signal, model in zip(white_signal, fit_solution)]
 
-KS = stats.ks_2samp(ObRes, WhiteNoise)
+KS = stats.ks_2samp(ObRes, white_noise)
 
 print(KS)
