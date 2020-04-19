@@ -5,19 +5,9 @@ import matplotlib.patheffects as path_effects
 from scipy.integrate import odeint
 from scipy.optimize import curve_fit
 
-###############################################################################
-#                    General plot functions
-###############################################################################
+import util
 
 plt.style.use('seaborn')
-
-# Elimates the left and top lines and ticks in a matplotlib plot
-def PlotStyle(axes, title):
-    axes.spines['top'].set_visible(False)
-    axes.spines['right'].set_visible(False)
-    axes.spines['bottom'].set_visible(True)
-    axes.spines['left'].set_visible(True)
-    axes.set_title(title)
 
 ###############################################################################
 #                                 ODE solver
@@ -40,7 +30,7 @@ model_solution = odeint(ODE, C0, solver_time)
 ###############################################################################
 
 # General function to solve the ODE model
-def GeneralSolver(t, k, C0):
+def solve_ode(t, k, C0):
     localK = k
     localC0 = C0
 
@@ -53,13 +43,8 @@ def GeneralSolver(t, k, C0):
 
 
 # Solves the ODE model using the initial condition provided above
-def solve_ode(t, k):
-    return GeneralSolver(t, k, C0)
-
-
-# Element wise sum of two iterables of the same size, name makes reference to the output rather than the process
-def make_noisy_data(data, noise):
-    return [val + cal for val, cal in zip(data, noise)]
+def compute_solution(t, k):
+    return solve_ode(t, k, C0)
 
 
 ###############################################################################
@@ -68,15 +53,15 @@ def make_noisy_data(data, noise):
 
 # Solving the ODE model
 t_vals = np.linspace(0, 2, num=1000)
-solution = solve_ode(t_vals, kc)
+solution = compute_solution(t_vals, kc)
 
 # Making some simulated data to perform regression
 white_noise = [np.random.uniform(low=-1, high=1) / 20 for val in solution]
-white_signal = make_noisy_data(solution, white_noise)
-Kp = curve_fit(solve_ode, t_vals, white_signal)[0][0]
+white_signal = util.make_noisy_data(solution, white_noise)
+Kp = curve_fit(compute_solution, t_vals, white_signal)[0][0]
 
 # Parameter estimation
-fit_solution = solve_ode(t_vals, Kp)
+fit_solution = compute_solution(t_vals, Kp)
 
 plt.figure(2)
 
@@ -85,4 +70,4 @@ plt.plot(t_vals, fit_solution, label='Regression', path_effects=[path_effects.Si
                                                                  path_effects.Normal()])
 ax = plt.gca()
 ax.legend(loc=0)
-PlotStyle(ax, '')
+util.plot_style(ax, '')
