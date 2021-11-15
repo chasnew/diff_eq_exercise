@@ -59,7 +59,7 @@ system_solution = odeint(kinetic_system, initial_conditions, time_steps)
 #                    Visualization
 ###############################################################################
 
-plt.figure(3, figsize=(9, 6))
+plt.figure(1, figsize=(9, 6))
 
 plt.plot(time_steps, system_solution[:, 0], 'b-', label='[A]',
          path_effects=[path_effects.SimpleLineShadow(alpha=0.2, rho=0.2),
@@ -95,14 +95,14 @@ def solve_model(t, k1, k2, k3, initial_conditions):
     c_k2 = k2
     c_k3 = k3
 
-    cInit = initial_conditions
+    c_init = initial_conditions
 
-    cMatrix = make_matrix_model(c_k1, c_k2, c_k3)
+    c_matrix = make_matrix_model(c_k1, c_k2, c_k3)
 
     def LocalModel(cInit, t):
-        return util.make_model(cMatrix, cInit)
+        return util.make_model(c_matrix, cInit)
 
-    solution = odeint(LocalModel, cInit, t)
+    solution = odeint(LocalModel, c_init, t)
 
     return solution[:, 2]
 
@@ -111,11 +111,11 @@ def compute_solution(t, K1, K2, K3):
     return solve_model(t, K1, K2, K3, initial_conditions)
 
 
-Model02Params = curve_fit(compute_solution, time_steps, white_signal)
+est_parameters = curve_fit(compute_solution, time_steps, white_signal)
 
-f_k1 = Model02Params[0][0]
-f_k2 = Model02Params[0][1]
-f_k3 = Model02Params[0][2]
+f_k1 = est_parameters[0][0]
+f_k2 = est_parameters[0][1]
+f_k3 = est_parameters[0][2]
 print(f'true parameters = [{k1, k2, k3}]')
 print(f'estimated parameters = [{f_k1, f_k2, f_k3}]')
 
@@ -125,7 +125,7 @@ fit_solution = compute_solution(time_steps, f_k1, f_k2, f_k3)
 #                        Visualization
 ###############################################################################
 
-plt.figure(4, figsize=(9, 6))
+plt.figure(2, figsize=(9, 6))
 
 (markers, stemlines, baseline) = plt.stem(time_steps, white_signal, bottom=0, label='Data', basefmt=" ")
 plt.setp(stemlines, linestyle="-", color="red", linewidth=0.5, alpha=0.5)
@@ -140,7 +140,22 @@ plt.xlabel('Time', fontsize=16, fontweight='bold')
 plt.ylabel('Concentration', fontsize=16, fontweight='bold')
 plt.legend(loc=0, fontsize=14)
 
-plt.ylim(0, 5.2)
+plt.ylim(-0.25, 5.2)
+
+ax = plt.gca()
+util.plot_style(ax, '')
+
+# Compare estimated solutions with actual solutions
+
+plt.figure(3, figsize=(9, 6))
+
+plt.plot(time_steps, system_solution[:, 0], 'blue', label='[A]')
+plt.plot(time_steps, system_solution[:, 1], 'green', label='[B]')
+plt.plot(time_steps, system_solution[:, 2], 'magenta', label='[C]')
+
+plt.xlabel('Time', fontsize=16, fontweight='bold')
+plt.ylabel('Concentration', fontsize=16, fontweight='bold')
+plt.legend(loc=0, fontsize=14)
 
 ax = plt.gca()
 util.plot_style(ax, '')
